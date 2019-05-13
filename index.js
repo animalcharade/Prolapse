@@ -1,7 +1,9 @@
 //Requirements
+require('dotenv').config();
 const sunCalc = require("suncalc");
 const goProModule = require("goproh4");
 const wifi = require("pi-wifi");
+const util = require("util");
 
 //Settings
 const latitude = 46.8721;
@@ -19,6 +21,10 @@ const goProNetwork = {
 	ssid: ""
 	password: ""
 };
+
+//Promisify things
+const connectTo = util.promisify(wifi.connectTo);
+const disconnect = util.promisify(wifi.disconnect);
 
 //Get the current date/time
 const date = new Date();
