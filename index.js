@@ -119,10 +119,10 @@ async function main(){
 
 	printLine("Setting timelapse start and end times...");
 	
-//	const timelapseStart = sunset - timelapseLength / 2;
-const	timelapseStart = Date.now() + 1000 * 1;
-//	const timelapseEnd = sunset + timelapseLength / 2;
-const	timelapseEnd = Date.now() + 1000 * 70;
+	const timelapseStart = sunset - timelapseLength / 2;
+	//const	timelapseStart = Date.now() + 1000 * 1; //For testing
+	const timelapseEnd = sunset + timelapseLength / 2;
+	//const	timelapseEnd = Date.now() + 1000 * 70; //For testing
 
 	print("Done!");
 	print("The timelapse will begin at " + new Date(timelapseStart));
