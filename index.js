@@ -12,14 +12,26 @@ print("Starting!");
 //Requirements
 printLine("Executing requirements...");
 
-require('dotenv').config();
+require("dotenv").config();
 const sunCalc = require("suncalc");
 const wifi = require("pi-wifi");
 const util = require("util");
+
+const path = require("path");
+const fs = require("fs");
+const readDir = util.promisify(fs.readdir);
+const unlink = util.promisify(fs.unlink);
+
 const goProModule = require("goproh4");
 const goPro = new goProModule.Camera({
 	mac: process.env.GOPRO_MAC
 });
+
+const dropboxV2Api = require("dropbox-v2-api");
+const dropbox = util.promisify(dropboxV2Api.authenticate({
+	token: process.env.DROPBOX_TOKEN
+}));
+
 
 print("Done!");
 
@@ -34,7 +46,8 @@ print("Done!");
 
 printLine("Setting timelapse length...");
 
-const timelapseLength = 7200000;
+//const timelapseLength = 7200000;
+const timelapseLength = 1000 * 60;
 
 print("Done!");
 
@@ -59,6 +72,7 @@ function delay(duration){
 
 
 //Main function
+
 async function main(){
 	
 	//Set network details
@@ -69,7 +83,7 @@ async function main(){
 	
 	print("Done!");
 
-	console.log(networks);
+	print(JSON.stringify(networks));
 
 	printLine("Finding home and GoPro network IDs...");
 
@@ -105,17 +119,19 @@ async function main(){
 
 	printLine("Setting timelapse start and end times...");
 	
-	const timelapseStart = sunset - timelapseLength / 2;
-	const timelapseEnd = sunset + timelapseLength / 2;
+//	const timelapseStart = sunset - timelapseLength / 2;
+const	timelapseStart = Date.now() + 1000 * 1;
+//	const timelapseEnd = sunset + timelapseLength / 2;
+const	timelapseEnd = Date.now() + 1000 * 70;
 
 	print("Done!");
-	print("The timelapse will begin at " + timelapseStart);
-	print("The timelapse will end at " + timelapseEnd);
+	print("The timelapse will begin at " + new Date(timelapseStart));
+	print("The timelapse will end at " + new Date(timelapseEnd));
 
 	//Wait until it's time to start our timelapse
 	
-	while(date.now() < timelapseStart){
-		let timeRemaining = (timelapseStart - date.now()) / 1000; //In seconds
+	while(Date.now() < timelapseStart){
+		let timeRemaining = (timelapseStart - Date.now()) / 1000; //In seconds
 		printLine("\r Waiting " + timeRemaining  + " seconds for timelapse to start...   ");
 	}
 
@@ -136,7 +152,7 @@ async function main(){
 	printLine("Connecting to GoPro...");
 	
 	await connect(goProNetwork);
-	await delay(15000);
+	await delay(20000);
 
 	print("Done!");
 	
@@ -145,11 +161,8 @@ async function main(){
 	printLine("Powering on GoPro...");
 	
 	goPro.powerOn();
-
-	for(i = 0; i < 20; i++){
-		print(JSON.stringify(await goPro.status()));
-		await delay(1000);
-	}
+	print(JSON.stringify(await goPro.status()));
+	await delay(1000);
 	
 	print("Done!");
 
@@ -157,7 +170,27 @@ async function main(){
 	
 	printLine("Setting GoPro mode to Timelapse...");
 
-	await goPro.mode(goProModule.Settings.Modes.Photo,goProModule.Settings.Submodes.Photo.Continuous);
+	await goPro.mode(goProModule.Settings.Modes.Burst,goProModule.Settings.Submodes.Burst.NightLapse);
+	await delay(1000);
+
+	print("Done!");
+
+	//Set timelapse interval
+	
+	printLine("Setting timelapse interval...");
+	
+	print(JSON.stringify(goProModule.Settings.BurstNightlapseInterval)); 
+	await goPro.set(goProModule.Settings.BURST_NIGHTLAPSE_INTERVAL,10);
+	await delay(1000);
+
+	print("Done!");
+
+	//Set timelapse exposure time
+	
+	printLine("Setting timelapse exposure time...");
+
+	await goPro.set(goProModule.Settings.BURST_EXPOSURE_TIME,goProModule.Settings.BurstExposureTime.Auto);
+	await delay(1000);
 
 	print("Done!");
 
@@ -166,6 +199,7 @@ async function main(){
 	printLine("Initiating timelapse...");
 
 	await goPro.start();
+	await delay(1000);
 
 	print("Done!");
 
@@ -174,13 +208,14 @@ async function main(){
 	printLine("Disconnecting from GoPro...");
 
 	await disconnect();
+	await delay(1000);
 
 	print("Done!");
 
 	//Wait until it's time to end timelapse
 	
-	while(date.now() < timelapseEnd){
-		let timeRemaining = (timelapseEnd - date.now()) / 1000; //In seconds
+	while(Date.now() < timelapseEnd){
+		let timeRemaining = (timelapseEnd - Date.now()) / 1000; //In seconds
 		printLine("\r Waiting " + timeRemaining  + " seconds for timelapse to complete...   ");
 	}
 
@@ -191,7 +226,7 @@ async function main(){
 	printLine("Connecting to GoPro...");
 	
 	await connect(goProNetwork);
-	await delay(15000);
+	await delay(20000);
 
 	print("Done!");
 
@@ -200,26 +235,49 @@ async function main(){
 	printLine("Stopping timelapse...");
 
 	await goPro.stop();
+	await delay(1000);
 
 	print("Done!");
 
 	//Download files
 	
-	const filesToDownload = await goPro.listMedia();
+	const media  = (await goPro.listMedia()).media;
 	
-	print(filesToDownload);
-
-//	for(let i = 0; i < filesToDownload.length; i++){
-//		goPro.getMedia(filesToDownload[0]
-//	}
+	
+	print(JSON.stringify(media)); 
+	for(let i = 0; i < media.length; i++){
+		const directory = media[i].d;
+		const files = media[i].fs;
+		for(let j = 0; j < files.length; j++){
+			const header = files[j].g;
+			const firstImage = files[j].b;
+			const lastImage = files[j].l;
+			for(let k = firstImage; k <= lastImage; k++){
+				const filename = "G00" + header + k + ".JPG";
+				const path = "./buffer/"+filename;
+				printLine("Saving " + path + "...");
+				await goPro.getMedia(directory,filename,path);
+				print("Done!");
+			}
+			
+		}
+	}
 
 	//Delete files
-	
+
+	printLine("Clearing camera's storage...");
+
+	await goPro.deleteAll();
+
+	print("Done!");
+
 	//Turn off GoPro
 	
 	printLine("Turning off GoPro...");
 
 	await goPro.powerOff();
+	await delay(1000);
+
 
 	print("Done!");
 
@@ -240,9 +298,49 @@ async function main(){
 	await delay(15000);
 
 	print("Done!");
+
+	//Get list of local files
+
+	printLine("Getting list of files to be uploaded to Dropbox...");
 	
-	//Create a new folder in Dropbox for this date
+	const localFiles = await readDir("./buffer/");
+
+	print("Done!");
+	print(localFiles.length + " files!");
+	
+	
+	//Set Dropbox upload destination
+	
+	printLine("Setting Dropbox destination...");
+
+	const dboxRoot = process.env.DROPBOX_ROOT
+	const dboxYear = date.getFullYear()
+	const monthArray = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+	const dboxMonth = ("0" + (date.getMonth() + 1)).slice(-2)  + " " + monthArray[date.getMonth()];
+	const dboxDay = date.getDate();
+
+	const dropboxPath = path.normalize([dboxRoot, dboxYear, dboxMonth, dboxDay, process.env.FOLDER_NAME].join("/"));
+
+	print("Done!");
+	print(dropboxPath);
+
 	//Upload files to DropBox
 	
+	for(let i = 0; i < localFiles.length; i++){
+		printLine("Uploading " + localFiles[i] + "...");
+		await dropbox({
+			resource: "files/upload",
+			parameters: {
+				path: ( dropboxPath + "/" + localFiles[i] ) 
+			},
+			readStream: fs.createReadStream("./buffer/" + localFiles[i])
+		});
+
+		print("Done!");
+		printLine("Removing local version...");
+		await unlink("./buffer/" + localFiles[i]);
+			print("Done! " + (localFiles.length - i - 1) + " remaining!");
+	}
+print("Job complete! Exiting!");
 }
 main().catch(function(error){ console.error(error)});
