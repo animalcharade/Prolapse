@@ -13,6 +13,7 @@
     "dropbox-v2-api": "^2.4.1",
     "goproh4": "^0.4.2",
     "pi-wifi": "^1.2.0",
-    "suncalc": "^1.8.0"
+    "suncalc": "^1.8.0",
+    "yargs": "^13.2.4"
   }
 }

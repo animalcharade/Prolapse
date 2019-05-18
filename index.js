@@ -9,6 +9,21 @@ function printSegment(message){
 
 print("Starting!");
 
+//Arguments
+printSegment("Parsing arguments...");
+
+const argv = require("yargs")
+	.alias("t", "test")
+	.describe("t", "Test Mode")
+	.boolean("t")
+	.argv;
+
+if(argv.test){
+	print("Test mode enabled!");
+} else {
+	print("No arguments.");
+}
+
 //Requirements
 printSegment("Executing requirements...");
 
@@ -46,8 +61,14 @@ print("Done!");
 
 printSegment("Setting timelapse length...");
 
-//const timelapseLength = 7200000;
-const timelapseLength = 1000 * 60;
+const MINUTE = 1000 * 60;
+const HOUR = MINUTE * 60;
+
+let timelapseLength = process.env.HOURS * HOUR + process.env.MINUTES * MINUTE;
+
+if(argv.test){
+	const timelapseLength = MINUTE;
+}
 
 print("Done!");
 
@@ -69,7 +90,6 @@ function delay(duration){
 		setTimeout(resolve, duration);
 	});
 }
-
 
 //Main function
 
@@ -119,10 +139,14 @@ async function main(){
 
 	printSegment("Setting timelapse start and end times...");
 	
-	const timelapseStart = sunset - timelapseLength / 2;
-	//const	timelapseStart = Date.now() + 1000 * 1; //For testing
-	const timelapseEnd = sunset + timelapseLength / 2;
-	//const	timelapseEnd = Date.now() + 1000 * 70; //For testing
+	let timelapseStart = sunset - timelapseLength / 2;
+	if(argv.test){
+		timelapseStart = Date.now() + 1000;
+	}
+	let timelapseEnd = sunset + timelapseLength / 2;
+	if(argv.test){
+		timelapseEnd = Date.now() + 1000 * 70;
+	}
 
 	print("Done!");
 	print("The timelapse will begin at " + new Date(timelapseStart));
