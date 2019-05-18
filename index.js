@@ -3,14 +3,14 @@ function print(message){
 	process.stdout.write(message + "\n");
 }
 //Function for printing to console without newline
-function printLine(message){
+function printSegment(message){
 	process.stdout.write(message + " ");
 }
 
 print("Starting!");
 
 //Requirements
-printLine("Executing requirements...");
+printSegment("Executing requirements...");
 
 require("dotenv").config();
 const sunCalc = require("suncalc");
@@ -37,14 +37,14 @@ print("Done!");
 
 //Settings
 
-printLine("Setting GoPro latitude/longitude...");
+printSegment("Setting GoPro latitude/longitude...");
 
 const latitude = 46.8721;
 const longitude = -113.9940;
 
 print("Done!");
 
-printLine("Setting timelapse length...");
+printSegment("Setting timelapse length...");
 
 //const timelapseLength = 7200000;
 const timelapseLength = 1000 * 60;
@@ -53,7 +53,7 @@ print("Done!");
 
 //Promisify things
 
-printLine("Promisifying wifi utilities...");
+printSegment("Promisifying wifi utilities...");
 
 const connect = util.promisify(wifi.connectToId);
 const disconnect = util.promisify(wifi.disconnect);
@@ -77,7 +77,7 @@ async function main(){
 	
 	//Set network details
 
-	printLine("Getting list of Raspberry Pi's networks...");
+	printSegment("Getting list of Raspberry Pi's networks...");
 
 	const networks = await listNetworks();
 	
@@ -85,7 +85,7 @@ async function main(){
 
 	print(JSON.stringify(networks));
 
-	printLine("Finding home and GoPro network IDs...");
+	printSegment("Finding home and GoPro network IDs...");
 
 	const homeNetwork = networks.find(network => network.ssid === process.env.HOME_SSID).network_id;
 	const goProNetwork = networks.find(network => network.ssid === process.env.GOPRO_SSID).network_id;
@@ -97,7 +97,7 @@ async function main(){
 
 	//Get the current date/time
 	
-	printLine("Getting the current date and time...");
+	printSegment("Getting the current date and time...");
 
 	const date = new Date();
 
@@ -107,7 +107,7 @@ async function main(){
 
 	//Get today's sunset time
 	
-	printLine("Getting today's sunset time...");
+	printSegment("Getting today's sunset time...");
 	
 	const times = sunCalc.getTimes(date, latitude, longitude);
 	const sunset = times.sunset;
@@ -117,7 +117,7 @@ async function main(){
 
 	//Set GoPro start/end times
 
-	printLine("Setting timelapse start and end times...");
+	printSegment("Setting timelapse start and end times...");
 	
 	const timelapseStart = sunset - timelapseLength / 2;
 	//const	timelapseStart = Date.now() + 1000 * 1; //For testing
@@ -132,14 +132,15 @@ async function main(){
 	
 	while(Date.now() < timelapseStart){
 		let timeRemaining = (timelapseStart - Date.now()) / 1000; //In seconds
-		printLine("\r Waiting " + timeRemaining  + " seconds for timelapse to start...   ");
+		printSegment("\r Waiting " + timeRemaining  + " seconds for timelapse to start...   ");
+	await delay(1000);
 	}
 
 	print("Ready!");
 
 	//Disconnect from home WiFi
 	
-	printLine("Disconnecting from WiFi...");
+	printSegment("Disconnecting from WiFi...");
 	
 	await disconnect();
 
@@ -149,7 +150,7 @@ async function main(){
 
 	//Connect to GoPro WiFi
 	
-	printLine("Connecting to GoPro...");
+	printSegment("Connecting to GoPro...");
 	
 	await connect(goProNetwork);
 	await delay(20000);
@@ -158,7 +159,7 @@ async function main(){
 	
 	//Turn on GoPro
 	
-	printLine("Powering on GoPro...");
+	printSegment("Powering on GoPro...");
 	
 	goPro.powerOn();
 	print(JSON.stringify(await goPro.status()));
@@ -168,7 +169,7 @@ async function main(){
 
 	//Set GoPro to timelapse mode
 	
-	printLine("Setting GoPro mode to Timelapse...");
+	printSegment("Setting GoPro mode to Timelapse...");
 
 	await goPro.mode(goProModule.Settings.Modes.Burst,goProModule.Settings.Submodes.Burst.NightLapse);
 	await delay(1000);
@@ -177,7 +178,7 @@ async function main(){
 
 	//Set timelapse interval
 	
-	printLine("Setting timelapse interval...");
+	printSegment("Setting timelapse interval...");
 	
 	print(JSON.stringify(goProModule.Settings.BurstNightlapseInterval)); 
 	await goPro.set(goProModule.Settings.BURST_NIGHTLAPSE_INTERVAL,10);
@@ -187,7 +188,7 @@ async function main(){
 
 	//Set timelapse exposure time
 	
-	printLine("Setting timelapse exposure time...");
+	printSegment("Setting timelapse exposure time...");
 
 	await goPro.set(goProModule.Settings.BURST_EXPOSURE_TIME,goProModule.Settings.BurstExposureTime.Auto);
 	await delay(1000);
@@ -196,7 +197,7 @@ async function main(){
 
 	//Begin timelapse
 	
-	printLine("Initiating timelapse...");
+	printSegment("Initiating timelapse...");
 
 	await goPro.start();
 	await delay(1000);
@@ -205,7 +206,7 @@ async function main(){
 
 	//Disconnect from GoPro WiFi
 
-	printLine("Disconnecting from GoPro...");
+	printSegment("Disconnecting from GoPro...");
 
 	await disconnect();
 	await delay(1000);
@@ -216,14 +217,15 @@ async function main(){
 	
 	while(Date.now() < timelapseEnd){
 		let timeRemaining = (timelapseEnd - Date.now()) / 1000; //In seconds
-		printLine("\r Waiting " + timeRemaining  + " seconds for timelapse to complete...   ");
+		printSegment("\r Waiting " + timeRemaining  + " seconds for timelapse to complete...   ");
+		await delay(1000);
 	}
 
 	print("Done!");
 
 	//Connect to GoPro WiFi
 	
-	printLine("Connecting to GoPro...");
+	printSegment("Connecting to GoPro...");
 	
 	await connect(goProNetwork);
 	await delay(20000);
@@ -232,7 +234,7 @@ async function main(){
 
 	//Stop timelapse
 	
-	printLine("Stopping timelapse...");
+	printSegment("Stopping timelapse...");
 
 	await goPro.stop();
 	await delay(1000);
@@ -255,7 +257,7 @@ async function main(){
 			for(let k = firstImage; k <= lastImage; k++){
 				const filename = "G00" + header + k + ".JPG";
 				const path = "./buffer/"+filename;
-				printLine("Saving " + path + "...");
+				printSegment("Saving " + path + "...");
 				await goPro.getMedia(directory,filename,path);
 				print("Done!");
 			}
@@ -265,7 +267,7 @@ async function main(){
 
 	//Delete files
 
-	printLine("Clearing camera's storage...");
+	printSegment("Clearing camera's storage...");
 
 	await goPro.deleteAll();
 
@@ -273,7 +275,7 @@ async function main(){
 
 	//Turn off GoPro
 	
-	printLine("Turning off GoPro...");
+	printSegment("Turning off GoPro...");
 
 	await goPro.powerOff();
 	await delay(1000);
@@ -283,7 +285,7 @@ async function main(){
 
 	//Disconnect from GoPro Wifi
 	
-	printLine("Disconnecting from GoPro...");
+	printSegment("Disconnecting from GoPro...");
 
 	await disconnect();
 	await delay(1000);
@@ -292,7 +294,7 @@ async function main(){
 	
 	//Connect to home WiFi
 		
-	printLine("Connecting to home network...");
+	printSegment("Connecting to home network...");
 
 	await connect(homeNetwork);
 	await delay(15000);
@@ -301,7 +303,7 @@ async function main(){
 
 	//Get list of local files
 
-	printLine("Getting list of files to be uploaded to Dropbox...");
+	printSegment("Getting list of files to be uploaded to Dropbox...");
 	
 	const localFiles = await readDir("./buffer/");
 
@@ -311,7 +313,7 @@ async function main(){
 	
 	//Set Dropbox upload destination
 	
-	printLine("Setting Dropbox destination...");
+	printSegment("Setting Dropbox destination...");
 
 	const dboxRoot = process.env.DROPBOX_ROOT
 	const dboxYear = date.getFullYear()
@@ -327,20 +329,20 @@ async function main(){
 	//Upload files to DropBox
 	
 	for(let i = 0; i < localFiles.length; i++){
-		printLine("Uploading " + localFiles[i] + "...");
+		printSegment("Uploading " + localFiles[i] + "...");
 		await dropbox({
 			resource: "files/upload",
 			parameters: {
-				path: ( dropboxPath + "/" + localFiles[i] ) 
+				path: dropboxPath + "/" + localFiles[i] 
 			},
 			readStream: fs.createReadStream("./buffer/" + localFiles[i])
 		});
 
 		print("Done!");
-		printLine("Removing local version...");
+		printSegment("Removing local version...");
 		await unlink("./buffer/" + localFiles[i]);
-			print("Done! " + (localFiles.length - i - 1) + " remaining!");
+		print("Done! " + (localFiles.length - i - 1) + " remaining!");
 	}
-print("Job complete! Exiting!");
+	print("Job complete! Exiting!");
 }
 main().catch(function(error){ console.error(error)});
