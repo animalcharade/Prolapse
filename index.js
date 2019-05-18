@@ -174,156 +174,165 @@ async function main(){
 
 	//Connect to GoPro WiFi
 	
-	printSegment("Connecting to GoPro...");
+	try{
 	
-	await connect(goProNetwork);
-	await delay(20000);
-
-	print("Done!");
-	
-	//Turn on GoPro
-	
-	printSegment("Powering on GoPro...");
-	
-	goPro.powerOn();
-	print(JSON.stringify(await goPro.status()));
-	await delay(1000);
-	
-	print("Done!");
-
-	//Set GoPro to timelapse mode
-	
-	printSegment("Setting GoPro mode to Timelapse...");
-
-	await goPro.mode(goProModule.Settings.Modes.Burst,goProModule.Settings.Submodes.Burst.NightLapse);
-	await delay(1000);
-
-	print("Done!");
-
-	//Set timelapse interval
-	
-	printSegment("Setting timelapse interval...");
-	
-	print(JSON.stringify(goProModule.Settings.BurstNightlapseInterval)); 
-	await goPro.set(goProModule.Settings.BURST_NIGHTLAPSE_INTERVAL,10);
-	await delay(1000);
-
-	print("Done!");
-
-	//Set timelapse exposure time
-	
-	printSegment("Setting timelapse exposure time...");
-
-	await goPro.set(goProModule.Settings.BURST_EXPOSURE_TIME,goProModule.Settings.BurstExposureTime.Auto);
-	await delay(1000);
-
-	print("Done!");
-
-	//Begin timelapse
-	
-	printSegment("Initiating timelapse...");
-
-	await goPro.start();
-	await delay(1000);
-
-	print("Done!");
-
-	//Disconnect from GoPro WiFi
-
-	printSegment("Disconnecting from GoPro...");
-
-	await disconnect();
-	await delay(1000);
-
-	print("Done!");
-
-	//Wait until it's time to end timelapse
-	
-	while(Date.now() < timelapseEnd){
-		let timeRemaining = (timelapseEnd - Date.now()) / 1000; //In seconds
-		printSegment("\r Waiting " + timeRemaining  + " seconds for timelapse to complete...   ");
-		await delay(1000);
-	}
-
-	print("Done!");
-
-	//Connect to GoPro WiFi
-	
-	printSegment("Connecting to GoPro...");
-	
-	await connect(goProNetwork);
-	await delay(20000);
-
-	print("Done!");
-
-	//Stop timelapse
-	
-	printSegment("Stopping timelapse...");
-
-	await goPro.stop();
-	await delay(1000);
-
-	print("Done!");
-
-	//Download files
-	
-	const media  = (await goPro.listMedia()).media;
-	
-	
-	print(JSON.stringify(media)); 
-	for(let i = 0; i < media.length; i++){
-		const directory = media[i].d;
-		const files = media[i].fs;
-		for(let j = 0; j < files.length; j++){
-			const header = files[j].g;
-			const firstImage = files[j].b;
-			const lastImage = files[j].l;
-			for(let k = firstImage; k <= lastImage; k++){
-				const filename = "G00" + header + k + ".JPG";
-				const path = "./buffer/"+filename;
-				printSegment("Saving " + path + "...");
-				await goPro.getMedia(directory,filename,path);
-				print("Done!");
-			}
-			
-		}
-	}
-
-	//Delete files
-
-	printSegment("Clearing camera's storage...");
-
-	await goPro.deleteAll();
-
-	print("Done!");
-
-	//Turn off GoPro
-	
-	printSegment("Turning off GoPro...");
-
-	await goPro.powerOff();
-	await delay(1000);
-
-
-	print("Done!");
-
-	//Disconnect from GoPro Wifi
-	
-	printSegment("Disconnecting from GoPro...");
-
-	await disconnect();
-	await delay(1000);
-
-	print("Done!");
-	
-	//Connect to home WiFi
+		printSegment("Connecting to GoPro...");
 		
-	printSegment("Connecting to home network...");
+		await connect(goProNetwork);
+		await delay(20000);
 
-	await connect(homeNetwork);
-	await delay(15000);
+		print("Done!");
+		
+		//Turn on GoPro
+		
+		printSegment("Powering on GoPro...");
+		
+		goPro.powerOn();
+		print(JSON.stringify(await goPro.status()));
+		await delay(1000);
+		
+		print("Done!");
 
-	print("Done!");
+		//Set GoPro to timelapse mode
+		
+		printSegment("Setting GoPro mode to Timelapse...");
+
+		await goPro.mode(goProModule.Settings.Modes.Burst,goProModule.Settings.Submodes.Burst.NightLapse);
+		await delay(1000);
+
+		print("Done!");
+
+		//Set timelapse interval
+		
+		printSegment("Setting timelapse interval...");
+		
+		print(JSON.stringify(goProModule.Settings.BurstNightlapseInterval)); 
+		await goPro.set(goProModule.Settings.BURST_NIGHTLAPSE_INTERVAL,10);
+		await delay(1000);
+
+		print("Done!");
+
+		//Set timelapse exposure time
+		
+		printSegment("Setting timelapse exposure time...");
+
+		await goPro.set(goProModule.Settings.BURST_EXPOSURE_TIME,goProModule.Settings.BurstExposureTime.Auto);
+		await delay(1000);
+
+		print("Done!");
+
+		//Begin timelapse
+		
+		printSegment("Initiating timelapse...");
+
+		await goPro.start();
+		await delay(1000);
+
+		print("Done!");
+
+		//Disconnect from GoPro WiFi
+
+		printSegment("Disconnecting from GoPro...");
+
+		await disconnect();
+		await delay(1000);
+
+		print("Done!");
+
+		//Wait until it's time to end timelapse
+		
+		while(Date.now() < timelapseEnd){
+			let timeRemaining = (timelapseEnd - Date.now()) / 1000; //In seconds
+			printSegment("\r Waiting " + timeRemaining  + " seconds for timelapse to complete...   ");
+			await delay(1000);
+		}
+
+		print("Done!");
+
+		//Connect to GoPro WiFi
+		
+		printSegment("Connecting to GoPro...");
+		
+		await connect(goProNetwork);
+		await delay(20000);
+
+		print("Done!");
+
+		//Stop timelapse
+		
+		printSegment("Stopping timelapse...");
+
+		await goPro.stop();
+		await delay(1000);
+
+		print("Done!");
+
+		//Download files
+		
+		const media  = (await goPro.listMedia()).media;
+		
+		
+		print(JSON.stringify(media)); 
+		for(let i = 0; i < media.length; i++){
+			const directory = media[i].d;
+			const files = media[i].fs;
+			for(let j = 0; j < files.length; j++){
+				const header = files[j].g;
+				const firstImage = files[j].b;
+				const lastImage = files[j].l;
+				for(let k = firstImage; k <= lastImage; k++){
+					const filename = "G00" + header + k + ".JPG";
+					const path = "./buffer/"+filename;
+					printSegment("Saving " + path + "...");
+					await goPro.getMedia(directory,filename,path);
+					print("Done!");
+				}
+				
+			}
+		}
+
+		//Delete files
+
+		printSegment("Clearing camera's storage...");
+
+		await goPro.deleteAll();
+
+		print("Done!");
+
+		//Turn off GoPro
+		
+		printSegment("Turning off GoPro...");
+
+		await goPro.powerOff();
+		await delay(1000);
+
+
+		print("Done!");
+
+	} catch(err) {
+		print("Something's wrong!");
+		throw err;
+	} finally {
+
+		//Disconnect from GoPro Wifi
+		
+		printSegment("Disconnecting from GoPro...");
+
+		await disconnect();
+		await delay(1000);
+
+		print("Done!");
+		
+		//Connect to home WiFi
+			
+		printSegment("Connecting to home network...");
+
+		await connect(homeNetwork);
+		await delay(15000);
+
+		print("Done!");
+
+	}
 
 	//Get list of local files
 
