@@ -71,6 +71,7 @@ if(argv.test){
 }
 
 print("Done!");
+print("Timelapses will last for " + timelapseLength / 1000 / 60 + " minutes.");
 
 //Promisify things
 
@@ -125,37 +126,44 @@ async function main(){
 
 	print("The current date/time is " + date);
 
-	//Get today's sunset time
+	//Get today's sunrise and sunset time
 	
-	printSegment("Getting today's sunset time...");
+	printSegment("Getting today's sunrise & sunset times...");
 	
 	const times = sunCalc.getTimes(date, latitude, longitude);
+	const sunrise = times.sunrise;
 	const sunset = times.sunset;
 
 	print("Done!");
+	print("Today's sunrise will be at " + sunrise);
 	print("Tonight's sunset will be at " + sunset);
 
 	//Set GoPro start/end times
 
 	printSegment("Setting timelapse start and end times...");
 	
-	let timelapseStart = sunset - timelapseLength / 2;
+	const sunriselapseStart = +sunrise - timelapseLength / 2;
+	const sunriselapseEnd = +sunrise + timelapseLength / 2;
+
+	let sunsetlapseStart = +sunset - timelapseLength / 2;
 	if(argv.test){
 		timelapseStart = Date.now() + 1000;
 	}
-	let timelapseEnd = sunset + timelapseLength / 2;
+	let sunsetlapseEnd = +sunset + timelapseLength / 2;
 	if(argv.test){
 		timelapseEnd = Date.now() + 1000 * 70;
 	}
 
 	print("Done!");
-	print("The timelapse will begin at " + new Date(timelapseStart));
-	print("The timelapse will end at " + new Date(timelapseEnd));
+	print("The sunrise timelapse will begin at " + new Date(sunriselapseStart));
+	print("The sunrise timelapse will end at " + new Date(sunriselapseEnd));
+	print("The sunset timelapse will begin at " + new Date(sunsetlapseStart));
+	print("The sunset timelapse will end at " + new Date(sunsetlapseEnd));
 
-	//Wait until it's time to start our timelapse
+	//Wait until it's time to start our sunrise timelapse
 	
-	while(Date.now() < timelapseStart){
-		let timeRemaining = (timelapseStart - Date.now()) / 1000; //In seconds
+	while(Date.now() < sunriselapseStart){
+		let timeRemaining = (sunriselapseStart - Date.now()) / 1000; //In seconds
 		printSegment("\r Waiting " + timeRemaining  + " seconds for timelapse to start...   ");
 	await delay(1000);
 	}
@@ -241,8 +249,8 @@ async function main(){
 
 		//Wait until it's time to end timelapse
 		
-		while(Date.now() < timelapseEnd){
-			let timeRemaining = (timelapseEnd - Date.now()) / 1000; //In seconds
+		while(Date.now() < sunriselapseEnd){
+			let timeRemaining = (sunriselapseEnd - Date.now()) / 1000; //In seconds
 			printSegment("\r Waiting " + timeRemaining  + " seconds for timelapse to complete...   ");
 			await delay(1000);
 		}
@@ -299,7 +307,7 @@ async function main(){
 
 		print("Done!");
 
-		//Turn off GoPro
+/*		//Turn off GoPro
 		
 		printSegment("Turning off GoPro...");
 
@@ -308,7 +316,7 @@ async function main(){
 
 
 		print("Done!");
-
+*/
 	} catch(err) {
 		print("Something's wrong!");
 		throw err;
@@ -354,7 +362,7 @@ async function main(){
 	const dboxMonth = ("0" + (date.getMonth() + 1)).slice(-2)  + " " + monthArray[date.getMonth()];
 	const dboxDay = date.getDate();
 
-	const dropboxPath = path.normalize([dboxRoot, dboxYear, dboxMonth, dboxDay, process.env.FOLDER_NAME].join("/"));
+	const dropboxPath = path.normalize([dboxRoot, dboxYear, dboxMonth, dboxDay, process.env.SUNRISE_FOLDER_NAME].join("/"));
 
 	print("Done!");
 	print(dropboxPath);
