@@ -344,7 +344,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName){
 
 async function main(){
 
-  setUpNetworks();
+  await setUpNetworks();
 
   //Get the current date/time
 
@@ -393,10 +393,17 @@ async function main(){
     print("The sunset timelapse will begin at " + new Date(sunsetlapseStart));
     print("The sunset timelapse will end at " + new Date(sunsetlapseEnd));
 
-    doTimelapse(date, sunriselapseStart, sunriselapseEnd, process.env.SUNRISE_FOLDER_NAME);
+    if(Date.now() < sunriselapseStart){
+      await doTimelapse(date, sunriselapseStart, sunriselapseEnd, process.env.SUNRISE_FOLDER_NAME);
+    } else {
+      print("Too late to start sunrise timelapse; skipping!");
+    }
 
-    doTimelapse(date, sunsetlapseStart, sunsetlapseEnd, process.env.SUNSET_FOLDER_NAME);
-  
+    if(Date.now() < sunsetlapseStart){
+      await doTimelapse(date, sunsetlapseStart, sunsetlapseEnd, process.env.SUNSET_FOLDER_NAME);
+    } else {
+      print("Too late to start sunset timelapse; skipping!");
+    }
   }
 
   print("Job complete! Exiting!");
