@@ -15,5 +15,8 @@
     "pi-wifi": "^1.2.0",
     "suncalc": "^1.8.0",
     "yargs": "^13.2.4"
+  },
+  "devDependencies": {
+    "eslint": "^5.16.0"
   }
 }

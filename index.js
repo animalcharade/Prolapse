@@ -66,10 +66,6 @@ const HOUR = MINUTE * 60;
 
 let timelapseLength = process.env.HOURS * HOUR + process.env.MINUTES * MINUTE;
 
-if(argv.test){
-  const timelapseLength = MINUTE;
-}
-
 print("Done!");
 print("Timelapses will last for " + timelapseLength / 1000 / 60 + " minutes.");
 
@@ -80,28 +76,34 @@ printSegment("Promisifying wifi utilities...");
 const connect = util.promisify(wifi.connectToId);
 const disconnect = util.promisify(wifi.disconnect);
 const listNetworks = util.promisify(wifi.listNetworks);
-const setInterface = util.promisify(wifi.setCurrentInterface);
-const connectionStatus = util.promisify(wifi.status);
 
 //Set up wireless networks
 
-printSegment("Getting list of Raspberry Pi's networks...");
+let networks;
+let homeNetwork;
+let goProNetwork;
 
-const networks = await listNetworks();
+async function setUpNetworks(){
 
-print("Done!");
+  printSegment("Getting list of Raspberry Pi's networks...");
 
-print(JSON.stringify(networks));
+  networks = await listNetworks();
 
-printSegment("Finding home and GoPro network IDs...");
+  print("Done!");
 
-const homeNetwork = networks.find(network => network.ssid === process.env.HOME_SSID).network_id;
-const goProNetwork = networks.find(network => network.ssid === process.env.GOPRO_SSID).network_id;
+  print(JSON.stringify(networks));
 
-print("Done!");
+  printSegment("Finding home and GoPro network IDs...");
 
-console.log(`The Home Network ID is: ${homeNetwork}`);
-console.log(`The GoPro Network ID is: ${goProNetwork}`);
+  homeNetwork = networks.find(network => network.ssid === process.env.HOME_SSID).network_id;
+  goProNetwork = networks.find(network => network.ssid === process.env.GOPRO_SSID).network_id;
+
+  print("Done!");
+
+  print("The Home Network ID is: " + homeNetwork);
+  print("The GoPro Network ID is: " + goProNetwork);
+
+}
 
 //Set up our delay function, allowing us to wait between commands
 
@@ -113,7 +115,7 @@ function delay(duration){
 
 //Timelapse function
 
-async function doTimelapse(timelapseStart, timelapseEnd, folderName){
+async function doTimelapse(date, timelapseStart, timelapseEnd, folderName){
   while(Date.now() < timelapseStart){
     let timeRemaining = (timelapseStart - Date.now()) / 1000; //In seconds
     printSegment("\r Waiting " + timeRemaining  + " seconds for timelapse to start...   ");
@@ -342,6 +344,8 @@ async function doTimelapse(timelapseStart, timelapseEnd, folderName){
 
 async function main(){
 
+  setUpNetworks();
+
   //Get the current date/time
 
   printSegment("Getting the current date and time...");
@@ -357,7 +361,7 @@ async function main(){
 
     //If we're in test mode, start a one-minute timelapse one minute from now.
 
-    doTimelapse(new Date.now() + MINUTE, new Date.now() + MINUTE * 2, "Test");
+    doTimelapse(date, new Date.now() + MINUTE, new Date.now() + MINUTE * 2, "Test");
 
   } else {
 
@@ -389,9 +393,9 @@ async function main(){
     print("The sunset timelapse will begin at " + new Date(sunsetlapseStart));
     print("The sunset timelapse will end at " + new Date(sunsetlapseEnd));
 
-    doTimelapse(sunriselapseStart, sunriselapseEnd, process.env.SUNRISE_FOLDER_NAME);
+    doTimelapse(date, sunriselapseStart, sunriselapseEnd, process.env.SUNRISE_FOLDER_NAME);
 
-    doTimelapse(sunsetlapseStart, sunsetlapseEnd, process.env.SUNSET_FOLDER_NAME);
+    doTimelapse(date, sunsetlapseStart, sunsetlapseEnd, process.env.SUNSET_FOLDER_NAME);
   
   }
 
