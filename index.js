@@ -83,87 +83,39 @@ const listNetworks = util.promisify(wifi.listNetworks);
 const setInterface = util.promisify(wifi.setCurrentInterface);
 const connectionStatus = util.promisify(wifi.status);
 
+//Set up wireless networks
+
+printSegment("Getting list of Raspberry Pi's networks...");
+
+const networks = await listNetworks();
+
 print("Done!");
 
+print(JSON.stringify(networks));
+
+printSegment("Finding home and GoPro network IDs...");
+
+const homeNetwork = networks.find(network => network.ssid === process.env.HOME_SSID).network_id;
+const goProNetwork = networks.find(network => network.ssid === process.env.GOPRO_SSID).network_id;
+
+print("Done!");
+
+console.log(`The Home Network ID is: ${homeNetwork}`);
+console.log(`The GoPro Network ID is: ${goProNetwork}`);
+
 //Set up our delay function, allowing us to wait between commands
+
 function delay(duration){
   return new Promise(function (resolve){
     setTimeout(resolve, duration);
   });
 }
 
-//Main function
+//Timelapse function
 
-async function main(){
-  
-  //Set network details
-
-  printSegment("Getting list of Raspberry Pi's networks...");
-
-  const networks = await listNetworks();
-  
-  print("Done!");
-
-  print(JSON.stringify(networks));
-
-  printSegment("Finding home and GoPro network IDs...");
-
-  const homeNetwork = networks.find(network => network.ssid === process.env.HOME_SSID).network_id;
-  const goProNetwork = networks.find(network => network.ssid === process.env.GOPRO_SSID).network_id;
-
-  print("Done!");
-
-  console.log(`The Home Network ID is: ${homeNetwork}`);
-  console.log(`The GoPro Network ID is: ${goProNetwork}`);
-
-  //Get the current date/time
-  
-  printSegment("Getting the current date and time...");
-
-  const date = new Date();
-
-  print("Done!");
-
-  print("The current date/time is " + date);
-
-  //Get today's sunrise and sunset time
-  
-  printSegment("Getting today's sunrise & sunset times...");
-  
-  const times = sunCalc.getTimes(date, latitude, longitude);
-  const sunrise = times.sunrise;
-  const sunset = times.sunset;
-
-  print("Done!");
-  print("Today's sunrise will be at " + sunrise);
-  print("Tonight's sunset will be at " + sunset);
-
-  //Set GoPro start/end times
-
-  printSegment("Setting timelapse start and end times...");
-  
-  const sunriselapseStart = +sunrise - timelapseLength / 2;
-  const sunriselapseEnd = +sunrise + timelapseLength / 2;
-
-  let sunsetlapseStart = +sunset - timelapseLength / 2;
-  if(argv.test){
-    timelapseStart = Date.now() + 1000;
-  }
-  let sunsetlapseEnd = +sunset + timelapseLength / 2;
-  if(argv.test){
-    timelapseEnd = Date.now() + 1000 * 70;
-  }
-
-  print("Done!");
-  print("The sunrise timelapse will begin at " + new Date(sunriselapseStart));
-  print("The sunrise timelapse will end at " + new Date(sunriselapseEnd));
-  print("The sunset timelapse will begin at " + new Date(sunsetlapseStart));
-  print("The sunset timelapse will end at " + new Date(sunsetlapseEnd));
-
-  //Wait until it's time to start our sunrise timelapse
-  
-  while(Date.now() < sunriselapseStart){
-    let timeRemaining = (sunriselapseStart - Date.now()) / 1000; //In seconds
+async function doTimelapse(timelapseStart, timelapseEnd, folderName){
+  while(Date.now() < timelapseStart){
+    let timeRemaining = (timelapseStart - Date.now()) / 1000; //In seconds
     printSegment("\r Waiting " + timeRemaining  + " seconds for timelapse to start...   ");
   await delay(1000);
   }
@@ -249,8 +201,8 @@ async function main(){
 
     //Wait until it's time to end timelapse
     
-    while(Date.now() < sunriselapseEnd){
-      let timeRemaining = (sunriselapseEnd - Date.now()) / 1000; //In seconds
+    while(Date.now() < timelapseEnd){
+      let timeRemaining = (timelapseEnd - Date.now()) / 1000; //In seconds
       printSegment("\r Waiting " + timeRemaining  + " seconds for timelapse to complete...   ");
       await delay(1000);
     }
@@ -318,7 +270,7 @@ async function main(){
     print("Done!");
 */
   } catch(err) {
-    print("Something's wrong!");
+    print("Something's wrong; will attempt to reconnect to home network!");
     throw err;
   } finally {
 
@@ -362,7 +314,7 @@ async function main(){
   const dboxMonth = ("0" + (date.getMonth() + 1)).slice(-2)  + " " + monthArray[date.getMonth()];
   const dboxDay = date.getDate();
 
-  const dropboxPath = path.normalize([dboxRoot, dboxYear, dboxMonth, dboxDay, process.env.SUNRISE_FOLDER_NAME].join("/"));
+  const dropboxPath = path.normalize([dboxRoot, dboxYear, dboxMonth, dboxDay, folderName].join("/"));
 
   print("Done!");
   print(dropboxPath);
@@ -384,6 +336,65 @@ async function main(){
     await unlink("./buffer/" + localFiles[i]);
     print("Done! " + (localFiles.length - i - 1) + " remaining!");
   }
+}
+
+//Main function
+
+async function main(){
+
+  //Get the current date/time
+
+  printSegment("Getting the current date and time...");
+
+  const date = new Date();
+
+  print("Done!");
+  print("The current date/time is " + date);
+
+  //Are we in test mode?
+
+  if(argv.test){
+
+    //If we're in test mode, start a one-minute timelapse one minute from now.
+
+    doTimelapse(new Date.now() + MINUTE, new Date.now() + MINUTE * 2, "Test");
+
+  } else {
+
+    //Get today's sunrise and sunset time
+    
+    printSegment("Getting today's sunrise & sunset times...");
+    
+    const times = sunCalc.getTimes(date, latitude, longitude);
+    const sunrise = times.sunrise;
+    const sunset = times.sunset;
+
+    print("Done!");
+    print("Today's sunrise will be at " + sunrise);
+    print("Tonight's sunset will be at " + sunset);
+
+    //Set GoPro start/end times
+
+    printSegment("Setting timelapse start and end times...");
+    
+    const sunriselapseStart = +sunrise - timelapseLength / 2;
+    const sunriselapseEnd = +sunrise + timelapseLength / 2;
+
+    const sunsetlapseStart = +sunset - timelapseLength / 2;
+    const sunsetlapseEnd = +sunset + timelapseLength / 2;
+
+    print("Done!");
+    print("The sunrise timelapse will begin at " + new Date(sunriselapseStart));
+    print("The sunrise timelapse will end at " + new Date(sunriselapseEnd));
+    print("The sunset timelapse will begin at " + new Date(sunsetlapseStart));
+    print("The sunset timelapse will end at " + new Date(sunsetlapseEnd));
+
+    doTimelapse(sunriselapseStart, sunriselapseEnd, process.env.SUNRISE_FOLDER_NAME);
+
+    doTimelapse(sunsetlapseStart, sunsetlapseEnd, process.env.SUNSET_FOLDER_NAME);
+  
+  }
+
   print("Job complete! Exiting!");
 }
 main().catch(function(error){ console.error(error)});
