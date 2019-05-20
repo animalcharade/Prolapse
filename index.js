@@ -361,7 +361,7 @@ async function main(){
 
     //If we're in test mode, start a one-minute timelapse one minute from now.
 
-    doTimelapse(date, new Date.now + MINUTE, new Date.now + MINUTE * 2, "Test");
+    doTimelapse(date, Date.now() + MINUTE, Date.now() + MINUTE * 2, "Test");
 
   } else {
 
