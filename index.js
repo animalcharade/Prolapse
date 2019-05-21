@@ -133,7 +133,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
   printSegment('Verifying GoPro\'s WiFi connection...');
 
-  const availableNetworks = scanWifi();
+  const availableNetworks = await scanWifi();
 
   if (!availableNetworks.some(network => network.ssid === process.env.GOPRO_SSID)) {
     print('Error!');
