@@ -88,7 +88,7 @@ let networks;
 let homeNetwork;
 let goProNetwork;
 
-async function setUpNetworks() {
+async function getNetworkIDs() {
   // Get list of Raspberry Pi's networks
 
   printSegment('Getting list of Raspberry Pi\'s saved networks...');
@@ -118,6 +118,21 @@ function delay(duration) {
   }));
 }
 
+// Network verification function, to check for the presense of a network before attempting to connect to it
+
+async function verifyNetwork(ssid) {
+  printSegment('Verifying presense of network "' + ssid + '"...');
+
+  const availableNetworks = await scanWifi();
+
+  if (!availableNetworks.some(network => network.ssid === process.env.GOPRO_SSID)) {
+    print('Error!');
+    throw new Error('"' + ssid + '" is unavailable; aborting.');
+  }
+
+  print('Done!');
+}
+
 // Timelapse function
 
 async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
@@ -131,16 +146,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
   // Verify GoPro network exists
 
-  printSegment('Verifying GoPro\'s WiFi connection...');
-
-  const availableNetworks = await scanWifi();
-
-  if (!availableNetworks.some(network => network.ssid === process.env.GOPRO_SSID)) {
-    print('Error!');
-    throw new Error('GoPro network is unavailable; aborting.');
-  }
-
-  print('Done!');
+  verifyNetwork(process.env.GOPRO_SSID);
 
   // Disconnect from home WiFi
 
@@ -338,27 +344,36 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
   // Upload files to DropBox
 
-  for (let i = 0; i < localFiles.length; i++) {
-    printSegment('Uploading ' + localFiles[i] + '...');
-    await dropbox({
-      resource: 'files/upload',
+  let remainingFiles = localFiles.length;
+  await Promise.all(localFiles.map(async (localFile) => {
+    printSegment('Uploading ' + localFile + '...');
+
+    const dropboxRequest = (resource, parameters) => dropbox({ resource, ...parameters });
+    await dropboxRequest('files/upload', {
       parameters: {
-        path: dropboxPath + '/' + localFiles[i],
+        path: dropboxPath + '/' + localFile,
       },
-      readStream: fs.createReadStream('./buffer/' + localFiles[i]),
+      readStream: fs.createReadStream('./buffer/' + localFile),
     });
 
     print('Done!');
     printSegment('Removing local version...');
-    await unlink('./buffer/' + localFiles[i]);
-    print('Done! ' + (localFiles.length - i - 1) + ' remaining!');
-  }
+    await unlink('./buffer/' + localFile);
+    remainingFiles -= 1;
+    print('Done! ' + remainingFiles + ' remaining!');
+  }));
 }
 
 // Main function
 
 async function main() {
-  await setUpNetworks();
+  // Verify that the GoPro's network is available
+
+  await verifyNetwork(process.env.GOPRO_SSID);
+
+  // Get the IDs for the networks we'll be connecting to
+
+  await getNetworkIDs();
 
   // Get the current date/time
 
