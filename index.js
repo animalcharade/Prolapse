@@ -78,6 +78,7 @@ const unlink = util.promisify(fs.unlink);
 const connect = util.promisify(wifi.connectToId);
 const disconnect = util.promisify(wifi.disconnect);
 const listNetworks = util.promisify(wifi.listNetworks);
+const scanWifi = util.promisify(wifi.scan);
 
 print('Done!');
 
@@ -90,7 +91,7 @@ let goProNetwork;
 async function setUpNetworks() {
   // Get list of Raspberry Pi's networks
 
-  printSegment('Getting list of Raspberry Pi\'s networks...');
+  printSegment('Getting list of Raspberry Pi\'s saved networks...');
 
   networks = await listNetworks();
 
@@ -127,6 +128,19 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
   }
 
   print('Ready!');
+
+  // Verify GoPro network exists
+
+  printSegment('Verifying GoPro\'s WiFi connection...');
+
+  const availableNetworks = scanWifi();
+
+  if (!availableNetworks.some(network => network.ssid === process.env.GOPRO_SSID)) {
+    print('Error!');
+    throw new Error('GoPro network is unavailable; aborting.');
+  }
+
+  print('Done!');
 
   // Disconnect from home WiFi
 
@@ -390,11 +404,15 @@ async function main() {
     print('The sunset timelapse will begin at ' + new Date(sunsetlapseStart));
     print('The sunset timelapse will end at ' + new Date(sunsetlapseEnd));
 
+    // Are we in time to start the sunrise timelapse?
+
     if (Date.now() < sunriselapseStart) {
       await doTimelapse(date, sunriselapseStart, sunriselapseEnd, process.env.SUNRISE_FOLDER_NAME);
     } else {
       print('Too late to start sunrise timelapse; skipping!');
     }
+
+    // Are we in time to start the sunset timelapse?
 
     if (Date.now() < sunsetlapseStart) {
       await doTimelapse(date, sunsetlapseStart, sunsetlapseEnd, process.env.SUNSET_FOLDER_NAME);
@@ -405,6 +423,7 @@ async function main() {
 
   print('Job complete! Exiting!');
 }
+
 main().catch((error) => {
   console.error(error);
 });
