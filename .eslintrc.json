@@ -3,7 +3,7 @@
         "es6": true,
         "node": true
     },
-    "extends": "eslint:recommended",
+    "extends": "airbnb",
     "globals": {
         "Atomics": "readonly",
         "SharedArrayBuffer": "readonly"
@@ -13,6 +13,10 @@
         "sourceType": "module"
     },
     "rules": {
-        "no-console": "off"
+        "no-await-in-loop": "off",
+        "no-console": "off",
+        "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
+        "prefer-template": "off"
     }
+
 }
