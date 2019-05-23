@@ -433,9 +433,9 @@ async function main() {
   // Did we launch with any arguments?
 
   if (argv.test) {
-    // If we're in test mode, start a one-minute timelapse five seconds from now.
+    // If we're in test mode, start a roughly two-minute timelapse five seconds from now.
 
-    await doTimelapse(thisDate, Date.now() + 5000, Date.now() + MINUTE + 5000, 'Test');
+    await doTimelapse(thisDate, Date.now() + 5000, Date.now() + MINUTE * 2, 'Test');
   } else if (argv.custom) {
     // If we're in custom mode, start a timelapse with custom parameters
     await doTimelapse(
