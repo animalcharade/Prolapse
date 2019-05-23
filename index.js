@@ -13,9 +13,18 @@ print('Starting!');
 printSegment('Parsing arguments...');
 
 const { argv } = require('yargs')
-  .alias('t', 'test')
-  .describe('t', 'Test Mode')
-  .boolean('t');
+  .options({
+    c: {
+      alias: 'custom',
+      boolean: 'c',
+      describe: 'Custom Mode',
+    },
+    t: {
+      alias: 'test',
+      boolean: true,
+      describe: 'Test Mode',
+    },
+  });
 
 if (argv.test) {
   print('Test mode enabled!');
@@ -131,6 +140,59 @@ async function verifyNetwork(ssid) {
   }
 
   print('Done!');
+}
+
+// Promise map function to limit parallel promises
+
+async function promiseMap(array, fn, parallelLimit = array.length, progress = () => {}) {
+  const allPromises = [];
+  let currentPromises = [];
+  for (let i = 0; i < array.length; i++) {
+    const promise = Promise.resolve(fn(array[i], i, array));
+    allPromises.push(promise);
+    currentPromises.push(promise);
+    // eslint-disable-next-line no-loop-func
+    promise.then(() => {
+      currentPromises = currentPromises.filter(elem => elem !== promise);
+      progress(allPromises.length - currentPromises.length, array.length);
+    });
+
+    if (currentPromises.length >= parallelLimit) {
+      await Promise.race(currentPromises);
+    }
+  }
+
+  return Promise.all(allPromises);
+}
+
+// Upload a single file to Dropbox function
+
+async function uploadFileToDropbox(file, destinationPath) {
+  print('Uploading ' + file + '...');
+
+  const dropboxRequest = (resource, parameters) => dropbox({ resource, ...parameters });
+  await dropboxRequest('files/upload', {
+    parameters: {
+      path: destinationPath + '/' + file,
+    },
+    readStream: fs.createReadStream('./buffer/' + file),
+  });
+
+  printSegment(file + 'uploaded successfully! Removing local version...');
+  await unlink('./buffer/' + file);
+  print(file + ' cleared from local storage!');
+}
+
+// Upload an array of files to Dropbox function
+
+async function uploadFilesToDropbox(fileArray, destinationPath) {
+  print(fileArray.length + ' files to upload!');
+  promiseMap(fileArray,
+    file => uploadFileToDropbox(file, destinationPath),
+    10,
+    (finished, total) => {
+      print(total - finished + ' files remaining!');
+    });
 }
 
 // Timelapse function
@@ -268,7 +330,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
         const lastImage = files[j].l;
         for (let k = firstImage; k <= lastImage; k++) {
           const filename = 'G00' + header + k + '.JPG';
-          const filepath = './buffer/' + filename;
+          const filepath = './buffer/' + folderName + '/' + filename;
           printSegment('Saving ' + filepath + '...');
           await goPro.getMedia(directory, filename, filepath);
           print('Done!');
@@ -284,7 +346,8 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
     print('Done!');
 
-    /* // Turn off GoPro
+    /*
+    // Turn off GoPro
 
     printSegment('Turning off GoPro...');
 
@@ -293,7 +356,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
 
     print('Done!');
-*/
+    */
   } catch (err) {
     print('Something\'s wrong; will attempt to reconnect to home network!');
     throw err;
@@ -344,24 +407,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
   // Upload files to DropBox
 
-  let remainingFiles = localFiles.length;
-  await Promise.all(localFiles.map(async (localFile) => {
-    printSegment('Uploading ' + localFile + '...');
-
-    const dropboxRequest = (resource, parameters) => dropbox({ resource, ...parameters });
-    await dropboxRequest('files/upload', {
-      parameters: {
-        path: dropboxPath + '/' + localFile,
-      },
-      readStream: fs.createReadStream('./buffer/' + localFile),
-    });
-
-    print('Done!');
-    printSegment('Removing local version...');
-    await unlink('./buffer/' + localFile);
-    remainingFiles -= 1;
-    print('Done! ' + remainingFiles + ' remaining!');
-  }));
+  uploadFilesToDropbox(localFiles, dropboxPath);
 }
 
 // Main function
@@ -379,23 +425,31 @@ async function main() {
 
   printSegment('Getting the current date and time...');
 
-  const date = new Date();
+  const thisDate = new Date();
 
   print('Done!');
-  print('The current date/time is ' + date);
+  print('The current date/time is ' + thisDate);
 
-  // Are we in test mode?
+  // Did we launch with any arguments?
 
   if (argv.test) {
-    // If we're in test mode, start a one-minute timelapse one minute from now.
+    // If we're in test mode, start a one-minute timelapse five seconds from now.
 
-    await doTimelapse(date, Date.now() + MINUTE, Date.now() + MINUTE * 2, 'Test');
+    await doTimelapse(thisDate, Date.now() + 5000, Date.now() + MINUTE + 5000, 'Test');
+  } else if (argv.custom) {
+    // If we're in custom mode, start a timelapse with custom parameters
+    await doTimelapse(
+      thisDate,
+      Date.now(),
+      Date.now() + MINUTE * argv.timelapseLength,
+      argv.folderName,
+    );
   } else {
     // Get today's sunrise and sunset time
 
     printSegment('Getting today\'s sunrise & sunset times...');
 
-    const times = sunCalc.getTimes(date, latitude, longitude);
+    const times = sunCalc.getTimes(thisDate, latitude, longitude);
     const { sunrise } = times;
     const { sunset } = times;
 
@@ -422,7 +476,12 @@ async function main() {
     // Are we in time to start the sunrise timelapse?
 
     if (Date.now() < sunriselapseStart) {
-      await doTimelapse(date, sunriselapseStart, sunriselapseEnd, process.env.SUNRISE_FOLDER_NAME);
+      await doTimelapse(
+        thisDate,
+        sunriselapseStart,
+        sunriselapseEnd,
+        process.env.SUNRISE_FOLDER_NAME,
+      );
     } else {
       print('Too late to start sunrise timelapse; skipping!');
     }
@@ -430,7 +489,7 @@ async function main() {
     // Are we in time to start the sunset timelapse?
 
     if (Date.now() < sunsetlapseStart) {
-      await doTimelapse(date, sunsetlapseStart, sunsetlapseEnd, process.env.SUNSET_FOLDER_NAME);
+      await doTimelapse(thisDate, sunsetlapseStart, sunsetlapseEnd, process.env.SUNSET_FOLDER_NAME);
     } else {
       print('Too late to start sunset timelapse; skipping!');
     }
