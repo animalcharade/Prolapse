@@ -178,7 +178,7 @@ async function uploadFileToDropbox(file, destinationPath) {
     readStream: fs.createReadStream('./buffer/' + file),
   });
 
-  printSegment(file + 'uploaded successfully! Removing local version...');
+  printSegment(file + ' uploaded successfully! \nRemoving local version...');
   await unlink('./buffer/' + file);
   print(file + ' cleared from local storage!');
 }
@@ -187,12 +187,14 @@ async function uploadFileToDropbox(file, destinationPath) {
 
 async function uploadFilesToDropbox(fileArray, destinationPath) {
   print(fileArray.length + ' files to upload!');
-  promiseMap(fileArray,
+  await promiseMap(
+    fileArray,
     file => uploadFileToDropbox(file, destinationPath),
     10,
     (finished, total) => {
       print(total - finished + ' files remaining!');
-    });
+    },
+  );
 }
 
 // Timelapse function
