@@ -330,7 +330,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
         const lastImage = files[j].l;
         for (let k = firstImage; k <= lastImage; k++) {
           const filename = 'G00' + header + k + '.JPG';
-          const filepath = './buffer/' + folderName + '/' + filename;
+          const filepath = './buffer/' + filename;
           printSegment('Saving ' + filepath + '...');
           await goPro.getMedia(directory, filename, filepath);
           print('Done!');
