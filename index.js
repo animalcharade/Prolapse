@@ -169,18 +169,30 @@ async function promiseMap(array, fn, parallelLimit = array.length, progress = ()
 
 async function uploadFileToDropbox(file, destinationPath) {
   print('Uploading ' + file + '...');
-
-  const dropboxRequest = (resource, parameters) => dropbox({ resource, ...parameters });
-  await dropboxRequest('files/upload', {
-    parameters: {
-      path: destinationPath + '/' + file,
-    },
-    readStream: fs.createReadStream('./buffer/' + file),
-  });
-
-  printSegment(file + ' uploaded successfully! \nRemoving local version...');
-  await unlink('./buffer/' + file);
-  print(file + ' cleared from local storage!');
+  let error;
+  for (let retries = 0; retries < 10; retries++) {
+    try {
+      const dropboxRequest = (resource, parameters) => dropbox({ resource, ...parameters });
+      await dropboxRequest('files/upload', {
+        parameters: {
+          path: destinationPath + '/' + file,
+        },
+        readStream: fs.createReadStream('./buffer/' + file),
+      });
+      printSegment(file + ' uploaded successfully! \nRemoving local version...');
+      await unlink('./buffer/' + file);
+      print(file + ' cleared from local storage!');
+      return;
+    } catch (_error) {
+      error = _error;
+      print('Error uploading ' + file);
+      print(error);
+      print('Retrying...');
+    }
+    await delay(10000);
+  }
+  print('Upload failed for ' + file);
+  throw error;
 }
 
 // Upload an array of files to Dropbox function
@@ -210,7 +222,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
   // Verify GoPro network exists
 
-  verifyNetwork(process.env.GOPRO_SSID);
+  await verifyNetwork(process.env.GOPRO_SSID);
 
   // Disconnect from home WiFi
 
