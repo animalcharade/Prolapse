@@ -209,14 +209,28 @@ async function uploadFilesToDropbox(fileArray, destinationPath) {
   );
 }
 
+// Function to report on how long we have left to wait
+
+async function waitUntil(targetTime, targetEvent) {
+  while (Date.now() < targetTime) {
+    const timeRemaining = (targetTime - Date.now()) / 1000; // In seconds
+    if (timeRemaining > 3600) {
+      printSegment('\r Waiting ' + Math.floor(timeRemaining / 3600) + ' hours until ' + targetEvent + '...   ');
+      await delay(3600000);
+    } else if (timeRemaining > 60) {
+      printSegment('\r Waiting ' + Math.floor(timeRemaining / 60) + ' minutes until ' + targetEvent + '...   ');
+      await delay(60000);
+    } else {
+      printSegment('\r Waiting ' + Math.floor(timeRemaining) + ' seconds until ' + targetEvent + '...   ');
+      await delay(1000);
+    }
+  }
+}
+
 // Timelapse function
 
 async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
-  while (Date.now() < timelapseStart) {
-    const timeRemaining = (timelapseStart - Date.now()) / 1000; // In seconds
-    printSegment('\r Waiting ' + timeRemaining + ' seconds for timelapse to start...   ');
-    await delay(1000);
-  }
+  await waitUntil(timelapseStart, folderName + 'Timelapse Start');
 
   print('Ready!');
 
@@ -304,11 +318,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
     // Wait until it's time to end timelapse
 
-    while (Date.now() < timelapseEnd) {
-      const timeRemaining = (timelapseEnd - Date.now()) / 1000; // In seconds
-      printSegment('\r Waiting ' + timeRemaining + ' seconds for timelapse to complete...   ');
-      await delay(1000);
-    }
+    await waitUntil(timelapseStart, folderName + 'Timelapse End');
 
     print('Done!');
 
@@ -343,7 +353,12 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
         const firstImage = files[j].b;
         const lastImage = files[j].l;
         for (let k = firstImage; k <= lastImage; k++) {
-          const filename = 'G00' + header + k + '.JPG';
+          // Variable 'k' must be 4 digits long, so we must pad it if less than 1000
+          let paddedK = '' + k;
+          while (paddedK.length < 4) {
+            paddedK = '0' + paddedK;
+          }
+          const filename = 'G00' + header + paddedK + '.JPG';
           const filepath = './buffer/' + filename;
           printSegment('Saving ' + filepath + '...');
           await goPro.getMedia(directory, filename, filepath);
@@ -421,7 +436,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
   // Upload files to DropBox
 
-  uploadFilesToDropbox(localFiles, dropboxPath);
+  await uploadFilesToDropbox(localFiles, dropboxPath);
 }
 
 // Main function
