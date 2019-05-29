@@ -318,7 +318,7 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 
     // Wait until it's time to end timelapse
 
-    await waitUntil(timelapseStart, folderName + ' Timelapse End');
+    await waitUntil(timelapseEnd, folderName + ' Timelapse End');
 
     print('Done!');
 
