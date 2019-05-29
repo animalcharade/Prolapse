@@ -215,13 +215,13 @@ async function waitUntil(targetTime, targetEvent) {
   while (Date.now() < targetTime) {
     const timeRemaining = (targetTime - Date.now()) / 1000; // In seconds
     if (timeRemaining > 3600) {
-      printSegment('\r Waiting ' + Math.floor(timeRemaining / 3600) + ' hours until ' + targetEvent + '...   ');
+      printSegment('\rWaiting ' + Math.floor(timeRemaining / 3600) + ' hours until ' + targetEvent + '...   ');
       await delay(3600000);
     } else if (timeRemaining > 60) {
-      printSegment('\r Waiting ' + Math.floor(timeRemaining / 60) + ' minutes until ' + targetEvent + '...   ');
+      printSegment('\rWaiting ' + Math.floor(timeRemaining / 60) + ' minutes until ' + targetEvent + '...   ');
       await delay(60000);
     } else {
-      printSegment('\r Waiting ' + Math.floor(timeRemaining) + ' seconds until ' + targetEvent + '...   ');
+      printSegment('\rWaiting ' + Math.floor(timeRemaining) + ' seconds until ' + targetEvent + '...   ');
       await delay(1000);
     }
   }
