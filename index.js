@@ -55,7 +55,6 @@ const goPro = new goProModule.Camera({
 // Set up Dropbox authentication
 
 const dropbox = util.promisify(dropboxV2Api.authenticate({
-  // pathRoot: JSON.stringify({ '.tag': 'root', root: process.env.DROPBOX_ROOT_NAMESPACE_ID }),
   token: process.env.DROPBOX_TOKEN,
 }));
 
