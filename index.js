@@ -173,7 +173,7 @@ async function setNamespace() {
     resource: 'users/get_current_account',
   });
   print(JSON.stringify(accountInfo));
-  // .root_namespace_id
+  namespace = accountInfo.root_info.root_namespace_id;
 }
 
 // Upload a single file to Dropbox function
