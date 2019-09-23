@@ -443,6 +443,11 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 // Main function
 
 async function main() {
+  const namespace = await dropbox({
+    resource: 'team/namespaces/list',
+  });
+  print(JSON.stringify(namespace));
+
   // Verify that the GoPro's network is available
 
   await verifyNetwork(process.env.GOPRO_SSID);
