@@ -58,6 +58,12 @@ const dropbox = util.promisify(dropboxV2Api.authenticate({
   token: process.env.DROPBOX_TOKEN,
 }));
 
+// Get Dropbox root folder namespace
+
+const namespace = dropbox({
+	resource: 'users/get_current_account',
+        }).root_namespace_id;
+
 // Settings
 
 printSegment('Setting GoPro latitude/longitude...');
@@ -175,7 +181,7 @@ async function uploadFileToDropbox(file, destinationPath) {
       const dropboxRequest = (resource, parameters) => dropbox({ resource, ...parameters });
       await dropboxRequest('files/upload', {
         parameters: {
-          path: destinationPath + '/' + file,
+		path: 'ns:' + namespace + '/' + destinationPath + '/' + file,
         },
         readStream: fs.createReadStream('./buffer/' + file),
       });
