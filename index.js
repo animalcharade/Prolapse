@@ -58,12 +58,6 @@ const dropbox = util.promisify(dropboxV2Api.authenticate({
   token: process.env.DROPBOX_TOKEN,
 }));
 
-// Get Dropbox root folder namespace
-
-const namespace = dropbox({
-	resource: 'users/get_current_account',
-        }).root_namespace_id;
-
 // Settings
 
 printSegment('Setting GoPro latitude/longitude...');
@@ -171,6 +165,17 @@ async function promiseMap(array, fn, parallelLimit = array.length, progress = ()
   return Promise.all(allPromises);
 }
 
+
+// Get Dropbox root folder namespace function
+let namespace;
+async function setNamespace() {
+  const accountInfo = await dropbox({
+    resource: 'users/get_current_account',
+  });
+  print(accountInfo);
+  // .root_namespace_id
+}
+
 // Upload a single file to Dropbox function
 
 async function uploadFileToDropbox(file, destinationPath) {
@@ -181,7 +186,7 @@ async function uploadFileToDropbox(file, destinationPath) {
       const dropboxRequest = (resource, parameters) => dropbox({ resource, ...parameters });
       await dropboxRequest('files/upload', {
         parameters: {
-		path: 'ns:' + namespace + '/' + destinationPath + '/' + file,
+          path: 'ns:' + namespace + '/' + destinationPath + '/' + file,
         },
         readStream: fs.createReadStream('./buffer/' + file),
       });
@@ -448,6 +453,9 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 // Main function
 
 async function main() {
+  // Set Dropbox namespace
+  await setNamespace();
+
   // Verify that the GoPro's network is available
 
   await verifyNetwork(process.env.GOPRO_SSID);
