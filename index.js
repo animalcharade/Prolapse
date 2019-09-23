@@ -172,7 +172,7 @@ async function setNamespace() {
   const accountInfo = await dropbox({
     resource: 'users/get_current_account',
   });
-  print(accountInfo);
+  print(JSON.stringify(accountInfo));
   // .root_namespace_id
 }
 
