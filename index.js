@@ -55,7 +55,7 @@ const goPro = new goProModule.Camera({
 // Set up Dropbox authentication
 
 const dropbox = util.promisify(dropboxV2Api.authenticate({
-  pathRoot: JSON.stringify({ '.tag': 'root', root: process.env.DROPBOX_ROOT_NAMESPACE_ID }),
+  // pathRoot: JSON.stringify({ '.tag': 'root', root: process.env.DROPBOX_ROOT_NAMESPACE_ID }),
   token: process.env.DROPBOX_TOKEN,
 }));
 
@@ -443,11 +443,6 @@ async function doTimelapse(date, timelapseStart, timelapseEnd, folderName) {
 // Main function
 
 async function main() {
-  const namespace = await dropbox({
-    resource: 'team/namespaces/list',
-  });
-  print(JSON.stringify(namespace));
-
   // Verify that the GoPro's network is available
 
   await verifyNetwork(process.env.GOPRO_SSID);
